@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -42,6 +43,15 @@ func TestBuildsFixture(t *testing.T) {
 	v = evaluate(builds, 11, time.Now(), time.Now(), time.Hour)
 	if !v.Done {
 		t.Errorf("count should be met: %+v", v)
+	}
+	var sb strings.Builder
+	printSummary(&sb, builds)
+	out := sb.String()
+	if strings.Contains(out, "10110//") {
+		t.Errorf("summary has a doubled slash:\n%s", out)
+	}
+	if n := strings.Count(out, "https://jenkins.ceph.com/job/ceph-dev-pipeline/10111/consoleFull"); n != 1 {
+		t.Errorf("shared log URL printed %d times, want 1:\n%s", n, out)
 	}
 	v = evaluate(builds, 12, time.Now(), time.Now(), time.Hour)
 	if v.Done || v.Missing != 1 {
