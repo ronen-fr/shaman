@@ -35,13 +35,17 @@ func TestBuildsFixture(t *testing.T) {
 	if len(builds) != 11 {
 		t.Fatalf("got %d builds, want 11", len(builds))
 	}
-	v := evaluate(builds, nil, time.Time{}, time.Now(), time.Minute)
+	v := evaluate(builds, 0, time.Time{}, time.Now(), time.Minute)
 	if !v.Done || !v.Failed {
 		t.Errorf("fixture verdict = %+v, want done and failed", v)
 	}
-	v = evaluate(builds, parseExpect("ubuntu/jammy,windows,rocky/10/arm64"), time.Now(), time.Now(), time.Hour)
+	v = evaluate(builds, 11, time.Now(), time.Now(), time.Hour)
 	if !v.Done {
-		t.Errorf("expectations should be met: %+v", v)
+		t.Errorf("count should be met: %+v", v)
+	}
+	v = evaluate(builds, 12, time.Now(), time.Now(), time.Hour)
+	if v.Done || v.Missing != 1 {
+		t.Errorf("count should not be met: %+v", v)
 	}
 }
 

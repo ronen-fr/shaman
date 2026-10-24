@@ -28,7 +28,7 @@ func run() int {
 	var (
 		interval = flag.Duration("interval", MinGap, "poll interval (minimum 2m)")
 		settle   = flag.Duration("settle", 20*time.Minute, "quiet period after all known builds finish, to catch late-queued builds")
-		expect   = flag.String("expect", "", "comma-separated builds that must exist, as distro[/version|codename[/arch[/flavor]]]; skips --settle once all are present and finished")
+		count    = flag.Int("count", 0, "number of expected builds; skips --settle once that many are present and finished")
 		sha1Flag = flag.String("sha1", "", "watch this sha1 instead of the branch head")
 		repos    = flag.String("repo", "https://github.com/ceph/ceph-ci,https://github.com/ceph/ceph", "comma-separated git repos to resolve the branch head from, first match wins")
 		prefix   = flag.String("prefix", "wip-rf-", "when no branch is given, watch the most recently committed branch with this prefix")
@@ -45,6 +45,10 @@ func run() int {
 	flag.Parse()
 	if flag.NArg() > 1 {
 		flag.Usage()
+		return exitError
+	}
+	if *count < 0 {
+		fmt.Fprintln(os.Stderr, "--count must not be negative")
 		return exitError
 	}
 	if *interval < MinGap {
@@ -69,7 +73,6 @@ func run() int {
 	}
 
 	client := NewClient(*shaman, *project)
-	expectations := parseExpect(*expect)
 
 	var (
 		sha1       string
@@ -112,7 +115,7 @@ func run() int {
 			}
 			prev = builds
 
-			v := evaluate(builds, expectations, lastChange, time.Now(), *settle)
+			v := evaluate(builds, *count, lastChange, time.Now(), *settle)
 			if v.Done {
 				return finish(ctx, branch, sha1, builds, v, *notify, *hook)
 			}
@@ -133,8 +136,8 @@ func progress(builds []Build, v Verdict) string {
 		return "no builds registered yet"
 	case v.Pending > 0:
 		return fmt.Sprintf("%d/%d builds still running", v.Pending, len(builds))
-	case len(v.Missing) > 0:
-		return fmt.Sprintf("all %d builds finished; still expecting %v", len(builds), v.Missing)
+	case v.Missing > 0:
+		return fmt.Sprintf("all %d builds finished; still expecting %d more", len(builds), v.Missing)
 	default:
 		return fmt.Sprintf("all %d builds finished; waiting %s for late builds", len(builds), v.Wait.Round(time.Second))
 	}

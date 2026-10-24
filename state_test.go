@@ -21,24 +21,24 @@ func TestEvaluate(t *testing.T) {
 	tests := []struct {
 		name       string
 		builds     []Build
-		expect     string
+		count      int
 		quiet      time.Duration
 		wantDone   bool
 		wantFailed bool
 	}{
-		{"no builds", nil, "", time.Hour, false, false},
-		{"still running", []Build{jammy, centosRunning}, "", time.Hour, false, false},
-		{"finished but not settled", []Build{jammy, centos}, "", 5 * time.Minute, false, false},
-		{"finished and settled", []Build{jammy, centos}, "", settle, true, false},
-		{"failure reported", []Build{jammy, centosFailed}, "", settle, true, true},
-		{"expect met skips settle", []Build{jammy, centos}, "ubuntu/jammy,centos/9/x86_64/default", 0, true, false},
-		{"expect missing", []Build{jammy}, "ubuntu,centos", time.Hour, false, false},
-		{"expect present but running", []Build{jammy, centosRunning}, "ubuntu,centos", time.Hour, false, false},
-		{"expect wrong flavor", []Build{jammy}, "ubuntu/22.04/x86_64/debug", time.Hour, false, false},
+		{"no builds", nil, 0, time.Hour, false, false},
+		{"still running", []Build{jammy, centosRunning}, 0, time.Hour, false, false},
+		{"finished but not settled", []Build{jammy, centos}, 0, 5 * time.Minute, false, false},
+		{"finished and settled", []Build{jammy, centos}, 0, settle, true, false},
+		{"failure reported", []Build{jammy, centosFailed}, 0, settle, true, true},
+		{"count met skips settle", []Build{jammy, centos}, 2, 0, true, false},
+		{"count exceeded skips settle", []Build{jammy, centos}, 1, 0, true, false},
+		{"count not reached", []Build{jammy}, 2, time.Hour, false, false},
+		{"count reached but running", []Build{jammy, centosRunning}, 2, time.Hour, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := evaluate(tt.builds, parseExpect(tt.expect), now.Add(-tt.quiet), now, settle)
+			v := evaluate(tt.builds, tt.count, now.Add(-tt.quiet), now, settle)
 			if v.Done != tt.wantDone || (v.Done && v.Failed != tt.wantFailed) {
 				t.Errorf("got %+v, want done=%v failed=%v", v, tt.wantDone, tt.wantFailed)
 			}
