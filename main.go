@@ -27,8 +27,8 @@ func main() {
 func run() int {
 	var (
 		interval = flag.Duration("interval", MinGap, "poll interval (minimum 2m)")
-		settle   = flag.Duration("settle", 20*time.Minute, "quiet period after all known builds finish, to catch late-queued builds")
-		count    = flag.Int("count", 0, "number of expected builds; skips --settle once that many are present and finished")
+		settle   = flag.Duration("settle", 20*time.Minute, "quiet period after all known builds finish, to catch late-queued builds; skipped once 3 builds have completed successfully")
+		count    = flag.Int("count", 0, "number of expected builds; if set, wait until that many are present and finished, and skip --settle")
 		sha1Flag = flag.String("sha1", "", "watch this sha1 instead of the branch head")
 		repos    = flag.String("repo", "https://github.com/ceph/ceph-ci,https://github.com/ceph/ceph", "comma-separated git repos to resolve the branch head from, first match wins")
 		prefix   = flag.String("prefix", "wip-rf-", "when no branch is given, watch the most recently committed branch with this prefix")

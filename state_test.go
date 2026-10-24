@@ -17,6 +17,8 @@ func TestEvaluate(t *testing.T) {
 	centos := b("centos", "9", "x86_64", "default", "completed")
 	centosFailed := b("centos", "9", "x86_64", "default", "failed")
 	centosRunning := b("centos", "9", "x86_64", "default", "started")
+	rocky := b("rocky", "10", "x86_64", "default", "completed")
+	rockyRunning := b("rocky", "10", "x86_64", "default", "started")
 
 	tests := []struct {
 		name       string
@@ -35,6 +37,12 @@ func TestEvaluate(t *testing.T) {
 		{"count exceeded skips settle", []Build{jammy, centos}, 1, 0, true, false},
 		{"count not reached", []Build{jammy}, 2, time.Hour, false, false},
 		{"count reached but running", []Build{jammy, centosRunning}, 2, time.Hour, false, false},
+		{"count overrides 3 completed", []Build{jammy, centos, rocky}, 4, time.Hour, false, false},
+		{"3 completed skips settle", []Build{jammy, centos, rocky}, 0, 0, true, false},
+		{"3 completed waits for running", []Build{jammy, centos, rocky, centosRunning}, 0, 0, false, false},
+		{"3 completed plus failure", []Build{jammy, centos, rocky, centosFailed}, 0, 0, true, true},
+		{"failures don't count as completed", []Build{jammy, centos, centosFailed}, 0, 5 * time.Minute, false, false},
+		{"2 completed still settles", []Build{jammy, centos, rockyRunning}, 0, time.Hour, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
